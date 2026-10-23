@@ -1,0 +1,33 @@
+{
+  "name": "parkpulse",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "postinstall": "node -e \"require('fs').mkdirSync('public',{recursive:true}); require('fs').copyFileSync('node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs','public/maplibre-gl-worker.mjs')\""
+  },
+  "overrides": {
+    "postcss": "^8.5.31"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.15.0",
+    "next": "^15.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4.1.14",
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.1.15",
+    "@types/react-dom": "^19.1.9",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}
