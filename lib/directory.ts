@@ -1,5 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
+import seedDocument from "@/data/parks.json";
 import { database } from "@/lib/db";
 import { toSummary } from "@/lib/nps-parse";
 import { hasNpsKey, REVALIDATE, usingFixtures } from "@/lib/runtime";
@@ -36,8 +35,7 @@ let seeded = false;
 let refresh: Promise<void> | null = null;
 
 function readSeed(): SeedFile {
-  const file = path.join(process.cwd(), "data", "parks.json");
-  const parsed = JSON.parse(fs.readFileSync(file, "utf8")) as SeedFile;
+  const parsed = seedDocument as SeedFile;
   if (!parsed?.retrievedAt || !Array.isArray(parsed.parks) || parsed.parks.length < MIN_PARKS) {
     throw new Error("data/parks.json is missing or too small. Run npm run catalog:refresh.");
   }

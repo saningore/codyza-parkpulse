@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -20,9 +21,35 @@ CREATE TABLE IF NOT EXISTS nps_budget (
 );
 `;
 
+let chosenCatalog: string | null = null;
+
+function canWrite(directory: string): boolean {
+  const probe = path.join(directory, `.parkpulse-write-${process.pid}`);
+  try {
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(probe, "ok");
+    fs.unlinkSync(probe);
+    return true;
+  } catch {
+    try {
+      fs.unlinkSync(probe);
+    } catch {
+      // The probe was never created.
+    }
+    return false;
+  }
+}
+
+export function chooseCatalogFile(preferredDirectory: string, temporaryDirectory: string): string {
+  if (canWrite(preferredDirectory)) return path.join(preferredDirectory, "catalog.sqlite");
+  return path.join(temporaryDirectory, "parkpulse", "catalog.sqlite");
+}
+
 export function catalogPath(): string {
   const configured = process.env.PARKPULSE_CATALOG_PATH?.trim();
-  return configured || path.join(process.cwd(), "data", "catalog.sqlite");
+  if (configured) return configured;
+  if (!chosenCatalog) chosenCatalog = chooseCatalogFile(path.join(process.cwd(), "data"), os.tmpdir());
+  return chosenCatalog;
 }
 
 export function database(): DatabaseSync {

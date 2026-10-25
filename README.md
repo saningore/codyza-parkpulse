@@ -27,7 +27,7 @@ Without a key, the site stays up. Search, the forecast, and the public alerts li
 
 ## Directory
 
-`npm run catalog:refresh` rebuilds `data/parks.json` from the public NPS Land Resources Division boundary service (no key). The server copies that file into `data/catalog.sqlite` on first use. When `NPS_API_KEY` is set, the server refreshes the sqlite directory from the NPS Data API if the copy did not come from that API, and again after 24 hours. A failed refresh keeps the previous rows.
+`npm run catalog:refresh` rebuilds `data/parks.json` from the public NPS Land Resources Division boundary service (no key). The server copies that file into sqlite on first use. The copy is `data/catalog.sqlite` when the project folder is writable, and the system temporary directory when it is not, which is the case on Vercel. When `NPS_API_KEY` is set, the server refreshes the sqlite directory from the NPS Data API if the copy did not come from that API, and again after 24 hours. A failed refresh keeps the previous rows.
 
 The boundary seed has unit code, name, designation, state labels, and a centroid. It does not have alerts, hours, fees, or descriptions. State labels are the boundary service's administrative strings. A trail that crosses many states may list only the states in that label until an API refresh replaces the row. Park and preserve pairs that share a unit code keep the national park name and one centroid.
 
