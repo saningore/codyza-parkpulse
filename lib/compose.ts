@@ -17,6 +17,7 @@ import {
   roadAffectsToday,
 } from "@/lib/nps-parse";
 import { nwsAlerts, nwsForecast, nwsPoints } from "@/lib/nws";
+import { publicParkAlerts } from "@/lib/public-alerts";
 import { REVALIDATE, hasNpsKey, usingFixtures } from "@/lib/runtime";
 import type {
   AccessibilityFact,
@@ -46,6 +47,7 @@ function isoShift(now: Date, days: number): string {
 }
 
 const NPS_DISCONNECTED = "Official alerts, hours, closures, campgrounds, and fees are not connected on this server. The visit status stays unconfirmed. Check the official park page before you travel.";
+const NPS_HOURS_ONLY = "Hours, campgrounds, and fees are not connected on this server. Alerts and closures on this page come from the public National Park Service alerts list. Check the official park page before you travel.";
 
 export async function loadParkConditions(parkCode: string, now = new Date()): Promise<ParkConditions | null> {
   const code = parkCode.toLowerCase();
@@ -135,7 +137,18 @@ async function loadLiveParkConditions(parkCode: string, now = new Date()): Promi
   });
 }
 
+async function loadPublicAlerts(parkCode: string, now: Date): Promise<Alert[] | null> {
+  try {
+    return await publicParkAlerts(parkCode, now);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error(`Public National Park Service alerts failed for ${parkCode}: ${message}`);
+    return null;
+  }
+}
+
 async function loadStoredParkConditions(park: ParkDetail, now: Date): Promise<ParkConditions> {
+  const alertsTask = loadPublicAlerts(park.parkCode, now);
   let timeZone: string | null = null;
   let weather: WeatherReport | null = null;
   let weatherFailed = park.latitude === null || park.longitude === null;
@@ -158,9 +171,10 @@ async function loadStoredParkConditions(park: ParkDetail, now: Date): Promise<Pa
       weatherAlertsFailed = true;
     }
   }
+  const alerts = await alertsTask;
   return buildConditions({
     park,
-    alerts: null,
+    alerts,
     campgrounds: null,
     visitorCenters: null,
     events: null,
@@ -227,7 +241,7 @@ export function buildConditions(input: BuildInput): ParkConditions {
   verdict.hoursText = schedule?.todayText ?? null;
 
   if (input.npsSkipped) {
-    warnings.push({ source: "National Park Service", message: NPS_DISCONNECTED });
+    warnings.push({ source: "National Park Service", message: input.alerts === null ? NPS_DISCONNECTED : NPS_HOURS_ONLY });
   } else {
     if (input.alerts === null) warnings.push({ source: "Alerts", message: "Park alerts could not be loaded. The visit status stays unconfirmed." });
     if (input.campgrounds === null) warnings.push({ source: "Campgrounds", message: "Campgrounds could not be loaded." });

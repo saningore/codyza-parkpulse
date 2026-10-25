@@ -14,7 +14,9 @@ export default function SourcesPage() {
 
       <section className="mt-8">
         <h2 className="font-serif text-2xl font-semibold">National Park Service</h2>
-        <p className="mt-2">Alerts, campgrounds, visitor centers, events, things to do, fees, amenities, road events, photos, hours, and park boundaries come from the NPS Data API. That API requires a free key kept on the server and sent as a header. It is not sent to the browser. NPS documents a default limit of 1,000 requests per hour. Alert categories are Danger, Closure, Caution, and Information. NPS says the API data load runs about every two hours, so a page can lag the park website. ParkPulse stops calling the API for the rest of the hour when that server&apos;s own counter passes 1,000. Two separate servers do not share one counter.</p>
+        <p className="mt-2">Alerts and closures load from the public list the National Park Service shows on its alerts page. That list does not need an API key. Alert categories are Danger, Closure, Caution, and Information. A failed download leaves the visit status unconfirmed instead of guessing that the park is open.</p>
+        <p className="mt-2"><a className="font-bold text-pine underline" href="https://www.nps.gov/planyourvisit/alerts.htm" target="_blank" rel="noopener noreferrer">NPS alerts page</a></p>
+        <p className="mt-2">Campgrounds, visitor centers, events, things to do, fees, amenities, road events, photos, hours, and park boundaries come from the NPS Data API. That API requires a free key kept on the server and sent as a header. It is not sent to the browser. NPS documents a default limit of 1,000 requests per hour. NPS says the API data load runs about every two hours, so a page can lag the park website. ParkPulse stops calling the API for the rest of the hour when that server&apos;s own counter passes 1,000. Two separate servers do not share one counter.</p>
         <p className="mt-2"><a className="font-bold text-pine underline" href="https://www.nps.gov/subjects/developer/api-documentation.htm" target="_blank" rel="noopener noreferrer">NPS API documentation</a></p>
       </section>
 

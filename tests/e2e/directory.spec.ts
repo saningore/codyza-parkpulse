@@ -24,9 +24,9 @@ test.describe("real park directory", () => {
     await expect(page.getByText("Sample records are loaded")).toHaveCount(0);
     await expect(page.getByText("needs an NPS API key")).toHaveCount(0);
     if (liveKey) {
-      await expect(page.getByText("Official alerts, hours, and closures appear after this server is connected")).toHaveCount(0);
+      await expect(page.getByText("Hours, campgrounds, and fees appear after this server is connected")).toHaveCount(0);
     } else {
-      await expect(page.getByText("Official alerts, hours, and closures appear after this server is connected")).toBeVisible();
+      await expect(page.getByText("Hours, campgrounds, and fees appear after this server is connected")).toBeVisible();
     }
 
     await openPark(page, "Independence park", "inde", "Independence National Historical Park");
@@ -36,8 +36,12 @@ test.describe("real park directory", () => {
     await expect(page.locator("[data-map-ready='true']")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("NPS_API_KEY")).toHaveCount(0);
     if (!liveKey) {
+      await expect(page.getByRole("heading", { name: "Conditions could not be loaded" })).toHaveCount(0);
+      await expect(page.getByText("Park search is unavailable")).toHaveCount(0);
       await expect(page.locator("[data-status=unconfirmed]")).toBeVisible();
       await expect(page.getByText("not connected on this server")).toBeVisible();
+      await expect(page.getByText("Alerts unavailable")).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: "Limited Restroom Availability" })).toBeVisible();
     }
 
     await page.getByRole("button", { name: "Save park" }).click();
@@ -48,7 +52,17 @@ test.describe("real park directory", () => {
     await expect(page.getByText("You have not saved any parks on this device.")).toBeVisible();
 
     await openPark(page, "yellowstone park", "yell", "Yellowstone National Park");
+    if (!liveKey) {
+      await expect(page.getByRole("heading", { name: "Conditions could not be loaded" })).toHaveCount(0);
+      await expect(page.locator("[data-status=restricted]")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Stay Away From Bull Elk" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Biscuit Basin Closed Due to Hydrothermal Explosion" })).toBeVisible();
+    }
     await openPark(page, "grand canyon park", "grca", "Grand Canyon National Park");
+    if (!liveKey) {
+      await expect(page.locator("[data-status=hazard]")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "INNER CANYON TRAIL CLOSURES" })).toBeVisible();
+    }
   });
 
   test("lists several Maine parks and parks near Philadelphia", async ({ page, context }) => {

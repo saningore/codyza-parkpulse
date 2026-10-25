@@ -8,6 +8,7 @@ import { ConfigError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const load = cache((parkCode: string) => loadParkConditions(parkCode));
 

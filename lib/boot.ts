@@ -5,6 +5,6 @@ export function boot(): void {
     throw new Error("Refusing to start. PARKPULSE_USE_FIXTURES serves sample records and must be unset when NODE_ENV is production.");
   }
   if (process.env.NODE_ENV === "production" && !hasNpsKey()) {
-    console.error("ParkPulse is degraded. NPS_API_KEY is missing, so alerts, hours, closures, and fees are not live. Search still uses the stored National Park Service directory.");
+    console.error("ParkPulse is degraded. NPS_API_KEY is missing, so hours, campgrounds, and fees are not live. Search uses the stored directory, and alerts use the public National Park Service list.");
   }
 }

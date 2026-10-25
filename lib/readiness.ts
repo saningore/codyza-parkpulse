@@ -27,7 +27,7 @@ export function readiness(): Readiness {
   }
   const status = directoryStatus();
   const problems: string[] = [];
-  if (!hasNpsKey()) problems.push("NPS_API_KEY is not set, so alerts, hours, closures, and fees are not live.");
+  if (!hasNpsKey()) problems.push("NPS_API_KEY is not set, so hours, campgrounds, and fees are not live. Alerts use the public National Park Service alerts list.");
   if (status.count < 1) problems.push("The park directory is empty.");
   const directory = status.count < 1 ? "empty" : status.origin === "nps-api" ? "nps-api" : "boundary-service";
   return {
