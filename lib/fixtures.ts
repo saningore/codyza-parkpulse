@@ -99,6 +99,8 @@ const CATALOG: RawPark[] = [
   }),
 ];
 
+export const FIXTURE_PARK_COUNT = CATALOG.length;
+
 function envelope(data: unknown[]): { total: string; data: unknown[] } {
   return { total: String(data.length), data };
 }

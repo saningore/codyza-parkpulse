@@ -22,6 +22,7 @@ const parks: ParkSummary[] = [
   park({ parkCode: "zion", fullName: "Zion National Park", states: "UT", latitude: 37.3, longitude: -113, description: "Canyons" }),
   park({ parkCode: "grca", fullName: "Grand Canyon National Park", states: "AZ", latitude: 36.1, longitude: -112.1 }),
   park({ parkCode: "devi", fullName: "Devils Tower", designation: "National Monument", states: "WY", description: "A stone tower" }),
+  park({ parkCode: "inde", fullName: "Independence National Historical Park", designation: "National Historical Park", states: "PA", description: "The park preserves Independence Hall." }),
 ];
 
 describe("search ranking", () => {
@@ -33,6 +34,9 @@ describe("search ranking", () => {
     expect(rankParks(parks, "canyon").map((item) => item.parkCode)).toEqual(["grca", "zion"]);
     expect(rankParks(parks, "monument").map((item) => item.parkCode)).toEqual(["devi"]);
     expect(rankParks(parks, "bison").map((item) => item.parkCode)).toEqual(["yell"]);
+    expect(rankParks(parks, "independence park").map((item) => item.parkCode)).toEqual(["inde"]);
+    expect(rankParks(parks, "yellowstone park").map((item) => item.parkCode)).toEqual(["yell"]);
+    expect(rankParks(parks, "grand canyon park").map((item) => item.parkCode)).toEqual(["grca"]);
     expect(rankParks(parks, "ge")).toEqual([]);
     expect(rankParks(parks, "y")).toEqual([]);
   });

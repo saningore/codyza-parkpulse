@@ -2,8 +2,12 @@ export function usingFixtures(): boolean {
   return process.env.PARKPULSE_USE_FIXTURES === "1";
 }
 
+export function hasNpsKey(): boolean {
+  return Boolean(process.env.NPS_API_KEY?.trim());
+}
+
 export function npsConfigured(): boolean {
-  return usingFixtures() || Boolean(process.env.NPS_API_KEY?.trim());
+  return usingFixtures() || hasNpsKey();
 }
 
 export const REVALIDATE = {

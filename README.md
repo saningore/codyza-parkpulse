@@ -1,23 +1,35 @@
 # ParkPulse
 
-Can I actually visit this park today? ParkPulse reads National Park Service conditions and the National Weather Service forecast for a park's published coordinates.
+Can I actually visit this park today? ParkPulse searches a stored directory of National Park Service sites, then reads official alerts, hours, and closures when the server has an NPS API key. The forecast comes from the National Weather Service for the park's published coordinates.
 
 ## Run locally
 
-Create `.env.local` with a free key from the [NPS developer site](https://www.nps.gov/subjects/developer/get-started.htm):
-
-```
-NPS_API_KEY=your-key
-```
+Node.js 24 or newer. The directory uses the built-in `node:sqlite` module.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and search Yellowstone.
+Open [http://localhost:3000](http://localhost:3000) and search `Independence park` or `Yellowstone`.
 
-Without a key, the site says the key is required. `PARKPULSE_USE_FIXTURES=1` loads labeled sample records for local checks. Those records are not live conditions.
+Search, the map, and the weather forecast work from the committed directory in `data/parks.json`. Alerts, hours, closures, fees, photos, and park outlines need a free key from the [NPS developer site](https://www.nps.gov/subjects/developer/get-started.htm). Put it in `.env.local`, which is not committed:
+
+```
+NPS_API_KEY=your-key
+```
+
+Restart the server after adding the key. The first searches still use the stored directory. A background refresh then replaces those records with the richer NPS Data API payload, including descriptions. On a park page, a configured key loads live conditions immediately.
+
+Without a key, the site stays up. The banner says alerts and hours are not connected, `/api/health` reports `mode: "degraded"`, and `/api/ready` returns 503. Visitors can still search. The visit status stays Unconfirmed instead of guessing that a park is open.
+
+`PARKPULSE_USE_FIXTURES=1` loads five labeled sample parks for local UI checks. Those records are not live conditions. The production server refuses to start when that variable is set.
+
+## Directory
+
+`npm run catalog:refresh` rebuilds `data/parks.json` from the public NPS Land Resources Division boundary service (no key). The server copies that file into `data/catalog.sqlite` on first use. When `NPS_API_KEY` is set, the server refreshes the sqlite directory from the NPS Data API if the copy did not come from that API, and again after 24 hours. A failed refresh keeps the previous rows.
+
+The boundary seed has unit code, name, designation, state labels, and a centroid. It does not have alerts, hours, fees, or descriptions. State labels are the boundary service's administrative strings. A trail that crosses many states may list only the states in that label until an API refresh replaces the row. Park and preserve pairs that share a unit code keep the national park name and one centroid.
 
 ## Checks
 
@@ -25,6 +37,20 @@ Without a key, the site says the key is required. `PARKPULSE_USE_FIXTURES=1` loa
 npm test
 npm run test:e2e
 npm run build
+npm run check:ready
 ```
+
+`npm test` covers ranking, the stored directory, and sample conditions. It does not call the National Park Service. `npm run test:e2e` runs the sample-data UI and a second server that searches the real directory. `npm run check:ready` exits non-zero until `NPS_API_KEY` is set, fixture mode is off, and the seed has at least 400 parks. Use it before a deploy. `/api/health` stays HTTP 200 so a process check can tell a degraded server from a dead one. `/api/ready` is the deploy check: HTTP 200 only when the directory is loaded and the key is set.
+
+## APIs and limits
+
+| Source | Used for | Key | Limit and caveat |
+| --- | --- | --- | --- |
+| NPS boundary service | Search directory seed | None | Names, designations, state labels, centroids. Not alerts or hours. |
+| NPS Data API | Alerts, hours, fees, places, photos, boundaries, directory refresh | `NPS_API_KEY` in `X-Api-Key` on the server | About 1,000 requests per hour. Data can lag the park website by about two hours. ParkPulse counts calls in sqlite and stops for the rest of that hour at 1,000. The counter is per server file, not global. |
+| National Weather Service | Forecast and weather alerts at the park point | None. User-Agent `ParkPulse/1.0 (https://codyza.com)` | One forecast grid, not the whole park. |
+| OpenFreeMap Liberty | Basemap | None | OpenStreetMap data. The public `tile.openstreetmap.org` server is not used. |
+
+Saved parks are stored in this browser under `parkpulse.saved.v1`, up to 50 parks. There is no account.
 
 Powered by Codyza.

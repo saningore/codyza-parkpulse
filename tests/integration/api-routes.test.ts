@@ -19,15 +19,26 @@ afterEach(() => {
 });
 
 describe("health route", () => {
-  it("reports fixtures, live, or unconfigured", async () => {
-    expect(await (await health()).json()).toEqual({ ok: true, mode: "fixtures" });
+  it("reports fixtures, live, or degraded", async () => {
+    expect(await (await health()).json()).toMatchObject({ ok: true, mode: "fixtures", directory: "fixtures", nps: "missing", problems: [] });
 
     vi.stubEnv("PARKPULSE_USE_FIXTURES", "");
     vi.stubEnv("NPS_API_KEY", "test-key");
-    expect(await (await health()).json()).toEqual({ ok: true, mode: "live" });
+    const live = await (await health()).json();
+    expect(live.ok).toBe(true);
+    expect(live.mode).toBe("live");
+    expect(live.nps).toBe("configured");
+    expect(live.directory).toBe("boundary-service");
+    expect(live.catalogParks).toBeGreaterThanOrEqual(400);
+    expect(live.problems).toEqual([]);
 
     vi.stubEnv("NPS_API_KEY", "  ");
-    expect(await (await health()).json()).toEqual({ ok: true, mode: "unconfigured" });
+    const degraded = await (await health()).json();
+    expect(degraded.ok).toBe(false);
+    expect(degraded.mode).toBe("degraded");
+    expect(degraded.nps).toBe("missing");
+    expect(degraded.catalogParks).toBeGreaterThanOrEqual(400);
+    expect(degraded.problems[0]).toMatch(/NPS_API_KEY/);
   });
 });
 
@@ -77,12 +88,15 @@ describe("parks route", () => {
     expect(words.status).toBe(400);
   });
 
-  it("asks for an API key when fixtures are off", async () => {
+  it("searches the stored directory when no API key is configured", async () => {
     vi.stubEnv("PARKPULSE_USE_FIXTURES", "");
     vi.stubEnv("NPS_API_KEY", "");
-    const response = await callParks("/api/parks?q=yell", "198.51.100.30");
-    expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: "ParkPulse needs an NPS API key before it can search parks." });
+    const response = await callParks("/api/parks?q=independence%20park", "198.51.100.30");
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.parks.map((park: { parkCode: string; fullName: string }) => park.parkCode)).toEqual(["inde"]);
+    expect(body.parks[0].fullName).toBe("Independence National Historical Park");
+    expect(JSON.stringify(body)).not.toMatch(/NPS_API_KEY/);
   });
 
   it("returns 429 after thirty searches from the same address", async () => {

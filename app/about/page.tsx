@@ -11,7 +11,7 @@ export default function AboutPage() {
       </section>
       <section className="mt-8">
         <h2 className="font-serif text-2xl font-semibold">What stays on this device</h2>
-        <p className="mt-2">Saved parks are stored in this browser. ParkPulse does not ask for an account, and it does not take visitor reports. Reservation availability is a different question, answered on Recreation.gov.</p>
+        <p className="mt-2">The server keeps a directory of National Park Service sites so search does not depend on a live API call. Saved parks stay in this browser. ParkPulse does not ask for an account, and it does not take visitor reports. Reservation availability is a different question, answered on Recreation.gov.</p>
       </section>
       <section className="mt-8">
         <h2 className="font-serif text-2xl font-semibold">Before you go</h2>

@@ -1,6 +1,7 @@
 import { ConfigError, UpstreamError } from "@/lib/errors";
 import { fetchJson } from "@/lib/http";
 import { fixtureNps } from "@/lib/fixtures";
+import { noteNpsRequest } from "@/lib/nps-budget";
 import { pageInfo } from "@/lib/nps-parse";
 import { REVALIDATE, usingFixtures } from "@/lib/runtime";
 
@@ -10,6 +11,7 @@ export async function npsGet(path: string, revalidate: number): Promise<unknown>
   if (usingFixtures()) return fixtureNps(path);
   const key = process.env.NPS_API_KEY?.trim();
   if (!key) throw new ConfigError();
+  noteNpsRequest();
   const response = await fetchJson(`${BASE}${path}`, revalidate, {
     Accept: "application/json",
     "X-Api-Key": key,
@@ -36,6 +38,7 @@ export async function npsBoundary(parkCode: string): Promise<unknown | null> {
   if (usingFixtures()) return fixtureNps(`/mapdata/parkboundaries/${parkCode}`);
   const key = process.env.NPS_API_KEY?.trim();
   if (!key) throw new ConfigError();
+  noteNpsRequest();
   const response = await fetchJson(`${BASE}/mapdata/parkboundaries/${parkCode}`, REVALIDATE.boundary, {
     Accept: "application/json",
     "X-Api-Key": key,

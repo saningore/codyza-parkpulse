@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { catalogByCodes, nearbyCatalog, searchCatalog } from "@/lib/catalog-data";
-import { ConfigError, UpstreamError } from "@/lib/errors";
+import { ConfigError, SEARCH_UNAVAILABLE, UpstreamError } from "@/lib/errors";
 import { inSearchableArea } from "@/lib/geo";
 import { clientKey, rateLimit } from "@/lib/http";
 
@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ parks }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
   } catch (error) {
     if (error instanceof ConfigError) {
-      return NextResponse.json({ error: "ParkPulse needs an NPS API key before it can search parks." }, { status: 503 });
+      console.error(error.message);
+      return NextResponse.json({ error: SEARCH_UNAVAILABLE }, { status: 503 });
     }
     const message = error instanceof UpstreamError ? error.message : "Park records are temporarily unavailable.";
     return NextResponse.json({ error: message }, { status: 502 });

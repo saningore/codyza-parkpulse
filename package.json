@@ -2,12 +2,17 @@
   "name": "parkpulse",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "catalog:refresh": "node scripts/build-directory.mjs",
+    "check:ready": "node scripts/check-ready.mjs",
     "postinstall": "node -e \"require('fs').mkdirSync('public',{recursive:true}); require('fs').copyFileSync('node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs','public/maplibre-gl-worker.mjs')\""
   },
   "overrides": {

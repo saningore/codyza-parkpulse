@@ -3,11 +3,9 @@ import Link from "next/link";
 export function ConfigNotice() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="font-serif text-4xl font-semibold">An NPS API key is required</h1>
-      <p className="mt-3 text-lg">ParkPulse reads official conditions from the National Park Service. Add <span className="font-bold">NPS_API_KEY</span> to the server environment and reload.</p>
-      <p className="mt-4">
-        <a className="font-bold text-pine underline" href="https://www.nps.gov/subjects/developer/get-started.htm" target="_blank" rel="noopener noreferrer">Get a free NPS API key</a>
-      </p>
+      <h1 className="font-serif text-4xl font-semibold">Live conditions are unavailable</h1>
+      <p className="mt-3 text-lg">ParkPulse could not read National Park Service alerts and hours for this park. Search still lists park sites. Check the official park page before you travel.</p>
+      <Link className="mt-6 inline-flex rounded-full bg-pine px-5 py-3 font-bold text-card" href="/">Search parks</Link>
     </article>
   );
 }

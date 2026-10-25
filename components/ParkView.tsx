@@ -41,7 +41,7 @@ export default function ParkView({ conditions }: { conditions: ParkConditions })
           <p className="mt-3 text-sm font-bold">Hours today: {verdict.hoursText ?? "not confirmed"}{conditions.todayLabel ? ` · ${conditions.todayLabel}` : ""}</p>
           <ul className="mt-4 grid gap-2 text-sm font-bold sm:grid-cols-2">
             <li>{conditions.alerts === null ? "Alerts unavailable" : count(conditions.alerts.length, "active alert", "active alerts")}</li>
-            <li>{count(conditions.notices.length, "campground notice", "campground notices")}</li>
+            <li>{conditions.campgrounds === null ? "Campground notices unavailable" : count(conditions.notices.length, "campground notice", "campground notices")}</li>
             <li>Current weather: {weatherLine}</li>
             <li>{conditions.visitorCenters === null ? "Visitor centers unavailable" : count(conditions.visitorCenters.length, "nearby visitor center", "nearby visitor centers")}</li>
             <li>{conditions.events === null ? "Events unavailable" : count(conditions.events.length, "event today", "events today")}</li>

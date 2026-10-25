@@ -14,5 +14,8 @@ export default defineConfig({
     environment: "node",
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
     testTimeout: 20_000,
+    env: {
+      PARKPULSE_CATALOG_PATH: ":memory:",
+    },
   },
 });

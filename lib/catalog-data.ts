@@ -1,10 +1,22 @@
 import { parksNear, rankParks } from "@/lib/catalog";
+import { listDirectory, scheduleDirectoryRefresh } from "@/lib/directory";
+import { UpstreamError } from "@/lib/errors";
 import { npsCollection } from "@/lib/nps";
 import { parsePark, toSummary } from "@/lib/nps-parse";
-import { REVALIDATE } from "@/lib/runtime";
+import { REVALIDATE, usingFixtures } from "@/lib/runtime";
 import type { ParkSummary } from "@/lib/types";
 
 export async function loadCatalog(): Promise<ParkSummary[]> {
+  if (!usingFixtures()) {
+    try {
+      scheduleDirectoryRefresh();
+      return listDirectory();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "unknown error";
+      console.error(`Park directory could not be read. ${message}`);
+      throw new UpstreamError("Park search is unavailable right now. Try again in a few minutes.");
+    }
+  }
   const rows = await npsCollection("/parks", REVALIDATE.catalog, 600);
   return rows.flatMap((row) => {
     const park = parsePark(row, null);

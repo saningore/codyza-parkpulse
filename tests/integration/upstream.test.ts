@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadParkConditions } from "@/lib/compose";
 import { ConfigError, UpstreamError } from "@/lib/errors";
 import { npsBoundary, npsCollection, npsGet } from "@/lib/nps";
+import { replaceNpsBudgetForTests } from "@/lib/nps-budget";
 import { nwsForecast, nwsPoints } from "@/lib/nws";
 
 const parkRow = {
@@ -68,6 +69,15 @@ describe("National Park Service client", () => {
     await expect(npsBoundary("missing")).resolves.toBeNull();
     fetchMock.mockResolvedValue(json(503, {}));
     await expect(npsBoundary("down")).rejects.toThrow(/boundary could not be loaded/);
+  });
+
+  it("stops before the network once this server has used its hourly NPS budget", async () => {
+    replaceNpsBudgetForTests(1_000);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(npsGet("/parks?parkCode=budget", 10)).rejects.toThrow(/rate limit/);
+    expect(fetchMock).not.toHaveBeenCalled();
+    replaceNpsBudgetForTests(0);
   });
 
   it("pages through a collection until the reported total is covered", async () => {

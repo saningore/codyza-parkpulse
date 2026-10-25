@@ -1,5 +1,6 @@
 node_modules
 .next
+.next-e2e
 out
 dist
 .vercel
@@ -11,3 +12,6 @@ playwright-report
 blob-report
 *.tsbuildinfo
 next-env.d.ts
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal

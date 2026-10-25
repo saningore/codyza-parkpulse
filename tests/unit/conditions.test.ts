@@ -1,8 +1,12 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadParkConditions } from "@/lib/compose";
 
 beforeAll(() => {
   process.env.PARKPULSE_USE_FIXTURES = "1";
+});
+
+afterAll(() => {
+  delete process.env.PARKPULSE_USE_FIXTURES;
 });
 
 describe("Yellowstone conditions", () => {

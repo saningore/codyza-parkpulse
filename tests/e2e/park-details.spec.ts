@@ -79,7 +79,7 @@ test.describe("park pages and shell", () => {
 
     await page.getByRole("link", { name: "About" }).click();
     await expect(page.getByRole("heading", { name: "About ParkPulse" })).toBeVisible();
-    await expect(page.getByText("Saved parks are stored in this browser.")).toBeVisible();
+    await expect(page.getByText("Saved parks stay in this browser.")).toBeVisible();
 
     await page.getByRole("link", { name: "Saved" }).click();
     await expect(page.getByRole("heading", { name: "Saved parks" })).toBeVisible();
@@ -108,7 +108,7 @@ test.describe("park pages and shell", () => {
 
     const health = await request.get("/api/health", { headers: { "x-forwarded-for": "203.0.113.40" } });
     expect(health.ok()).toBe(true);
-    expect(await health.json()).toEqual({ ok: true, mode: "fixtures" });
+    expect(await health.json()).toMatchObject({ ok: true, mode: "fixtures", problems: [] });
 
     const search = await request.get("/api/parks?q=yell", { headers: { "x-forwarded-for": "203.0.113.41" } });
     expect(search.ok()).toBe(true);

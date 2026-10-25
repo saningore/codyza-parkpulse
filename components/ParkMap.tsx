@@ -22,18 +22,7 @@ export default function ParkMap({ boundary, points }: { boundary: FeatureCollect
         const first = points[0];
         map = new lib.Map({
           container: "park-map",
-          style: {
-            version: 8,
-            sources: {
-              osm: {
-                type: "raster",
-                tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-                tileSize: 256,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-              },
-            },
-            layers: [{ id: "osm", type: "raster", source: "osm" }],
-          },
+          style: "https://tiles.openfreemap.org/styles/liberty",
           center: first ? [first.longitude, first.latitude] : [-98.5, 39.8],
           zoom: first ? 8 : 3,
         });
@@ -99,7 +88,7 @@ export default function ParkMap({ boundary, points }: { boundary: FeatureCollect
         <li>Visit — visitor center</li>
         <li>Camp — campground</li>
       </ul>
-      <p className="mt-2 text-xs text-ink/70">Map tiles © OpenStreetMap contributors. The outline is the National Park Service boundary when it loads.</p>
+      <p className="mt-2 text-xs text-ink/70">Map data © OpenStreetMap contributors, via OpenFreeMap. The outline is the National Park Service boundary when it loads.</p>
     </div>
   );
 }

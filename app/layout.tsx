@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible, Fraunces } from "next/font/google";
 import Link from "next/link";
-import { usingFixtures } from "@/lib/runtime";
+import { hasNpsKey, usingFixtures } from "@/lib/runtime";
 import "./globals.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   title: { default: "ParkPulse", template: "%s · ParkPulse" },
   description: "Can I actually visit this park today? Official National Park Service conditions and National Weather Service forecasts.",
 };
+
+export const dynamic = "force-dynamic";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,6 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {usingFixtures() && (
           <div className="bg-sand px-4 py-2 text-center text-sm font-bold">
             Sample records are loaded for local checks. These are not live National Park Service conditions.
+          </div>
+        )}
+        {!usingFixtures() && !hasNpsKey() && (
+          <div className="bg-sand px-4 py-2 text-center text-sm font-bold" role="status">
+            Search and weather forecasts are available. Official alerts, hours, and closures appear after this server is connected to the National Park Service.
           </div>
         )}
         <header className="border-b border-line bg-card">

@@ -1,3 +1,5 @@
+import { getDirectoryPark } from "@/lib/directory";
+import { ConfigError, UpstreamError } from "@/lib/errors";
 import { formatParkDate, parkLocalParts, preferredSchedule } from "@/lib/hours";
 import { campgroundNotices } from "@/lib/notices";
 import { npsBoundary, npsCollection, npsGet } from "@/lib/nps";
@@ -15,7 +17,7 @@ import {
   roadAffectsToday,
 } from "@/lib/nps-parse";
 import { nwsAlerts, nwsForecast, nwsPoints } from "@/lib/nws";
-import { REVALIDATE, usingFixtures } from "@/lib/runtime";
+import { REVALIDATE, hasNpsKey, usingFixtures } from "@/lib/runtime";
 import type {
   AccessibilityFact,
   Activity,
@@ -43,7 +45,30 @@ function isoShift(now: Date, days: number): string {
   return new Date(now.getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+const NPS_DISCONNECTED = "Official alerts, hours, closures, campgrounds, and fees are not connected on this server. The visit status stays unconfirmed. Check the official park page before you travel.";
+
 export async function loadParkConditions(parkCode: string, now = new Date()): Promise<ParkConditions | null> {
+  const code = parkCode.toLowerCase();
+  if (!/^[a-z]{4}$/.test(code)) return null;
+  if (usingFixtures() || hasNpsKey()) {
+    try {
+      return await loadLiveParkConditions(code, now);
+    } catch (error) {
+      if (usingFixtures()) throw error;
+      const stored = getDirectoryPark(code);
+      if (stored && (error instanceof UpstreamError || error instanceof ConfigError)) {
+        console.error(`Live National Park Service conditions failed for ${code}: ${error.message}`);
+        return loadStoredParkConditions(stored, now);
+      }
+      throw error;
+    }
+  }
+  const stored = getDirectoryPark(code);
+  if (!stored) return null;
+  return loadStoredParkConditions(stored, now);
+}
+
+async function loadLiveParkConditions(parkCode: string, now = new Date()): Promise<ParkConditions | null> {
   const code = parkCode.toLowerCase();
   if (!/^[a-z]{4}$/.test(code)) return null;
   const parkRows = await npsCollection(`/parks?parkCode=${code}`, REVALIDATE.park, 50);
@@ -110,6 +135,53 @@ export async function loadParkConditions(parkCode: string, now = new Date()): Pr
   });
 }
 
+async function loadStoredParkConditions(park: ParkDetail, now: Date): Promise<ParkConditions> {
+  let timeZone: string | null = null;
+  let weather: WeatherReport | null = null;
+  let weatherFailed = park.latitude === null || park.longitude === null;
+  let weatherAlerts: WeatherAlert[] | null = null;
+  let weatherAlertsFailed = weatherFailed;
+  if (park.latitude !== null && park.longitude !== null) {
+    try {
+      const points = await nwsPoints(park.latitude, park.longitude);
+      timeZone = points.timeZone;
+      const [forecastResult, alertsResult] = await Promise.allSettled([
+        points.forecastUrl ? nwsForecast(points.forecastUrl, points.placeLabel) : Promise.resolve(null),
+        nwsAlerts(park.latitude, park.longitude),
+      ]);
+      weather = forecastResult.status === "fulfilled" ? forecastResult.value : null;
+      weatherFailed = forecastResult.status === "rejected" || !weather?.periods.length;
+      weatherAlerts = alertsResult.status === "fulfilled" ? alertsResult.value : null;
+      weatherAlertsFailed = alertsResult.status === "rejected";
+    } catch {
+      weatherFailed = true;
+      weatherAlertsFailed = true;
+    }
+  }
+  return buildConditions({
+    park,
+    alerts: null,
+    campgrounds: null,
+    visitorCenters: null,
+    events: null,
+    eventsFailed: false,
+    activities: null,
+    fees: null,
+    feesFromParkOnly: false,
+    amenityFacts: null,
+    roadEvents: null,
+    boundary: null,
+    boundaryFailed: false,
+    weather: weatherFailed ? null : weather,
+    weatherFailed,
+    weatherAlerts: weatherAlertsFailed ? null : weatherAlerts ?? [],
+    weatherAlertsFailed,
+    timeZone,
+    now,
+    npsSkipped: true,
+  });
+}
+
 type BuildInput = {
   park: ParkDetail;
   alerts: Alert[] | null;
@@ -130,6 +202,7 @@ type BuildInput = {
   weatherAlertsFailed: boolean;
   timeZone: string | null;
   now: Date;
+  npsSkipped?: boolean;
 };
 
 export function buildConditions(input: BuildInput): ParkConditions {
@@ -153,18 +226,22 @@ export function buildConditions(input: BuildInput): ParkConditions {
   });
   verdict.hoursText = schedule?.todayText ?? null;
 
-  if (input.alerts === null) warnings.push({ source: "Alerts", message: "Park alerts could not be loaded. The visit status stays unconfirmed." });
-  if (input.campgrounds === null) warnings.push({ source: "Campgrounds", message: "Campgrounds could not be loaded." });
-  if (input.visitorCenters === null) warnings.push({ source: "Visitor centers", message: "Visitor centers could not be loaded." });
-  if (input.eventsFailed) warnings.push({ source: "Events", message: input.timeZone ? "Today's events could not be loaded." : "The park time zone could not be confirmed, so today's events are not listed." });
-  if (input.activities === null) warnings.push({ source: "Activities", message: "Suggested things to do could not be loaded. Activity names from the park record are still shown when the park record has them." });
-  if (input.fees === null) warnings.push({ source: "Fees", message: "Fees could not be loaded." });
-  if (input.feesFromParkOnly) warnings.push({ source: "Fees", message: "The fees and passes feed did not load. Fees shown are from the park record." });
-  if (input.roadEvents === null) warnings.push({ source: "Roads", message: "Road events could not be loaded. The visit status does not include them." });
+  if (input.npsSkipped) {
+    warnings.push({ source: "National Park Service", message: NPS_DISCONNECTED });
+  } else {
+    if (input.alerts === null) warnings.push({ source: "Alerts", message: "Park alerts could not be loaded. The visit status stays unconfirmed." });
+    if (input.campgrounds === null) warnings.push({ source: "Campgrounds", message: "Campgrounds could not be loaded." });
+    if (input.visitorCenters === null) warnings.push({ source: "Visitor centers", message: "Visitor centers could not be loaded." });
+    if (input.eventsFailed) warnings.push({ source: "Events", message: input.timeZone ? "Today's events could not be loaded." : "The park time zone could not be confirmed, so today's events are not listed." });
+    if (input.activities === null) warnings.push({ source: "Activities", message: "Suggested things to do could not be loaded. Activity names from the park record are still shown when the park record has them." });
+    if (input.fees === null) warnings.push({ source: "Fees", message: "Fees could not be loaded." });
+    if (input.feesFromParkOnly) warnings.push({ source: "Fees", message: "The fees and passes feed did not load. Fees shown are from the park record." });
+    if (input.roadEvents === null) warnings.push({ source: "Roads", message: "Road events could not be loaded. The visit status does not include them." });
+  }
   if (input.weatherFailed) warnings.push({ source: "Weather", message: "The National Weather Service forecast could not be loaded." });
   if (input.weatherAlertsFailed) warnings.push({ source: "Weather alerts", message: "National Weather Service alerts could not be loaded." });
   if (input.boundaryFailed) warnings.push({ source: "Map", message: "The park boundary could not be loaded. Places with coordinates are still mapped." });
-  if (input.amenityFacts === null) warnings.push({ source: "Accessibility", message: "The amenity list could not be loaded." });
+  if (!input.npsSkipped && input.amenityFacts === null) warnings.push({ source: "Accessibility", message: "The amenity list could not be loaded." });
 
   const notices = campgroundNotices(input.campgrounds ?? [], input.alerts ?? [], localDate);
   const accessibility = accessFacts(input);

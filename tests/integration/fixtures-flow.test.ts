@@ -41,7 +41,7 @@ describe("fixture catalog", () => {
 
 describe("fixture conditions", () => {
   it("builds the Yellowstone sample with stripped alert text and a partial closure", async () => {
-    const conditions = await loadParkConditions("YELL", new Date("2026-10-23T18:00:00Z"));
+    const conditions = await loadParkConditions("YELL", new Date());
     expect(conditions?.park.fullName).toBe("Yellowstone National Park");
     expect(conditions?.verdict.status).toBe("restricted");
     expect(conditions?.alerts?.map((alert) => alert.title)).toEqual([

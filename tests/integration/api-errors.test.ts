@@ -8,7 +8,7 @@ vi.mock("@/lib/catalog-data", () => ({
 
 import { GET } from "@/app/api/parks/route";
 import { searchCatalog } from "@/lib/catalog-data";
-import { ConfigError, UpstreamError } from "@/lib/errors";
+import { ConfigError, SEARCH_UNAVAILABLE, UpstreamError } from "@/lib/errors";
 import { NextRequest } from "next/server";
 
 const search = vi.mocked(searchCatalog);
@@ -28,7 +28,7 @@ describe("parks route failures", () => {
     search.mockRejectedValue(new ConfigError());
     const response = await request("203.0.113.10");
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: "ParkPulse needs an NPS API key before it can search parks." });
+    expect(await response.json()).toEqual({ error: SEARCH_UNAVAILABLE });
   });
 
   it("passes on an upstream failure message", async () => {
