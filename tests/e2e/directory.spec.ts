@@ -23,11 +23,7 @@ test.describe("real park directory", () => {
     await expect(page.getByRole("heading", { name: "Can I actually visit this park today?" })).toBeVisible();
     await expect(page.getByText("Sample records are loaded")).toHaveCount(0);
     await expect(page.getByText("needs an NPS API key")).toHaveCount(0);
-    if (liveKey) {
-      await expect(page.getByText("Hours, campgrounds, and fees appear after this server is connected")).toHaveCount(0);
-    } else {
-      await expect(page.getByText("Hours, campgrounds, and fees appear after this server is connected")).toBeVisible();
-    }
+    await expect(page.getByText("Hours, campgrounds, and fees appear after this server is connected")).toHaveCount(0);
 
     await openPark(page, "Independence park", "inde", "Independence National Historical Park");
     await expect(page.getByRole("link", { name: "Official park page" })).toHaveAttribute("href", /nps\.gov\/inde/);
@@ -38,10 +34,11 @@ test.describe("real park directory", () => {
     if (!liveKey) {
       await expect(page.getByRole("heading", { name: "Conditions could not be loaded" })).toHaveCount(0);
       await expect(page.getByText("Park search is unavailable")).toHaveCount(0);
-      await expect(page.locator("[data-status=unconfirmed]")).toBeVisible();
-      await expect(page.getByText("not connected on this server")).toBeVisible();
+      await expect(page.locator("[data-status=open]")).toBeVisible();
       await expect(page.getByText("Alerts unavailable")).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Limited Restroom Availability" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "All Park - Independence National Historical Park" })).toBeVisible();
+      await expect(page.getByText("9:00 AM - 5:00 PM").first()).toBeVisible();
     }
 
     await page.getByRole("button", { name: "Save park" }).click();
@@ -57,6 +54,10 @@ test.describe("real park directory", () => {
       await expect(page.locator("[data-status=restricted]")).toBeVisible();
       await expect(page.getByRole("heading", { name: "Stay Away From Bull Elk" })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Biscuit Basin Closed Due to Hydrothermal Explosion" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "All Park - All Park Hours" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Canyon Campground" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Yellowstone (non-commercial vehicle)" })).toBeVisible();
+      await expect(page.getByText("$35.00").first()).toBeVisible();
     }
     await openPark(page, "grand canyon park", "grca", "Grand Canyon National Park");
     if (!liveKey) {
@@ -90,14 +91,15 @@ test.describe("real park directory", () => {
       expect(body).toMatchObject({ ok: true, mode: "live", nps: "configured" });
       expect(["boundary-service", "nps-api"]).toContain(body.directory);
     } else {
-      expect(body.ok).toBe(false);
-      expect(body.mode).toBe("degraded");
-      expect(body.nps).toBe("missing");
+      expect(body.ok).toBe(true);
+      expect(body.mode).toBe("live");
+      expect(body.nps).toBe("public");
       expect(body.directory).toBe("boundary-service");
+      expect(body.problems).toEqual([]);
     }
 
     const ready = await request.get("/api/ready");
-    expect(ready.status()).toBe(liveKey ? 200 : 503);
+    expect(ready.status()).toBe(200);
 
     const search = await request.get("/api/parks?q=independence%20park");
     expect(search.ok()).toBe(true);

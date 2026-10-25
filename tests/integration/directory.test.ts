@@ -61,6 +61,68 @@ describe("stored park directory", () => {
         });
       }
       if (String(url).includes("/alerts/")) return json(200, { features: [] });
+      if (String(url).includes("structured_data_inde.json")) {
+        return json(200, {
+          description: "Historic district.",
+          telephoneNumberVoice: "215-965-2305",
+          url: "https://www.nps.gov/inde/index.htm",
+          directions: "In Philadelphia.",
+          weatherText: "Hot summers.",
+          entranceFees: [{ title: "Independence", cost: "$0.00", description: "No entrance fee." }],
+          images: [{ url: "/common/uploads/structured_data/photo.jpg", altText: "Hall", credit: "NPS" }],
+          operatingHours: [{
+            name: "All Park - Independence National Historical Park",
+            description: "Grounds",
+            hours: [1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => ({
+              dayOfWeek,
+              time_open: "9:00 AM",
+              time_close: "5:00 PM",
+              sunrise_open: 0,
+              sunset_close: 0,
+              is_closed: 0,
+            })),
+          }],
+          campgrounds: [{
+            name: "Sample Camp",
+            campgroundID: "1",
+            description: "A camp.",
+            totalSites: 10,
+            regulations: "Quiet hours.",
+            detailURL: "https://www.nps.gov/inde/planyourvisit/camp.htm",
+            reservationURL: "https://www.recreation.gov/camping/campgrounds/1",
+            location: { latitude: "39.95", longitude: "-75.15" },
+            operatingHours: {
+              1: {
+                name: "Campground - Sample Camp",
+                hours: [1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => ({
+                  dayOfWeek,
+                  time_open: "9:00 AM",
+                  time_close: "5:00 PM",
+                  is_closed: 0,
+                })),
+              },
+            },
+          }],
+          visitorCenters: [{
+            name: "Visitor Center",
+            visitorCenterID: "9",
+            siteURL: "http://www.nps.gov/inde/planyourvisit/center.htm",
+            telephoneNumberVoice: "215-965-2305",
+            amenities: ["Wheelchair access"],
+            operatingHours: {
+              1: {
+                name: "Visitor Center - Independence",
+                hours: [1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => ({
+                  dayOfWeek,
+                  time_open: "9:00 AM",
+                  time_close: "5:00 PM",
+                  is_closed: 0,
+                })),
+              },
+            },
+          }],
+        });
+      }
       if (String(url).includes("nps.gov/nps-alerts.json")) {
         return json(200, [
           {
@@ -90,8 +152,16 @@ describe("stored park directory", () => {
     const conditions = await loadParkConditions("inde", new Date("2026-10-25T15:00:00Z"));
     expect(conditions?.park.fullName).toBe("Independence National Historical Park");
     expect(conditions?.park.url).toBe("https://www.nps.gov/inde/index.htm");
-    expect(conditions?.verdict.status).toBe("unconfirmed");
-    expect(conditions?.verdict.reason).toMatch(/hours could not be confirmed/);
+    expect(conditions?.verdict.status).toBe("open");
+    expect(conditions?.verdict.hoursText).toBe("9:00 AM - 5:00 PM");
+    expect(conditions?.verdict.reason).toMatch(/information alert/);
+    expect(conditions?.park.description).toBe("Historic district.");
+    expect(conditions?.park.phone).toBe("215-965-2305");
+    expect(conditions?.park.images[0]?.url).toBe("https://www.nps.gov/common/uploads/structured_data/photo.jpg");
+    expect(conditions?.park.schedules.map((schedule) => schedule.name)).toEqual(["All Park - Independence National Historical Park"]);
+    expect(conditions?.fees).toEqual([expect.objectContaining({ title: "Independence", cost: "$0.00", kind: "fee" })]);
+    expect(conditions?.campgrounds).toEqual([expect.objectContaining({ name: "Sample Camp", totalSites: "10" })]);
+    expect(conditions?.visitorCenters?.[0]?.url).toBe("https://www.nps.gov/inde/planyourvisit/center.htm");
     expect(conditions?.alerts).toEqual([
       expect.objectContaining({
         id: "inde-restroom",
@@ -103,14 +173,15 @@ describe("stored park directory", () => {
     expect(conditions?.usingFixtures).toBe(false);
     expect(conditions?.weather?.periods[0].temperature).toBe("62°F");
     expect(conditions?.weather?.placeLabel).toBe("Philadelphia, PA");
-    expect(conditions?.warnings.some((warning) => warning.message.includes("not connected"))).toBe(true);
-    expect(conditions?.warnings.some((warning) => warning.message.includes("public National Park Service alerts list"))).toBe(true);
+    expect(conditions?.warnings.some((warning) => warning.message.includes("National Park Service public pages"))).toBe(true);
+    expect(conditions?.warnings.some((warning) => warning.message.includes("not connected on this server"))).toBe(false);
     expect(conditions?.warnings.some((warning) => /NPS_API_KEY/.test(warning.message))).toBe(false);
   });
 
   it("keeps the park page up when the public alerts list does not respond", async () => {
     vi.stubGlobal("fetch", async (url: string) => {
       expect(String(url)).not.toContain("developer.nps.gov");
+      if (String(url).includes("structured_data_")) return json(404, null);
       if (String(url).includes("nps.gov/nps-alerts.json")) return json(503, null);
       if (String(url).includes("/points/")) {
         return json(200, {

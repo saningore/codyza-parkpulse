@@ -19,6 +19,6 @@ describe("production boot", () => {
     vi.stubEnv("NPS_API_KEY", "");
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => boot()).not.toThrow();
-    expect(error).toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
   });
 });

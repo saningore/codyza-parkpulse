@@ -33,12 +33,12 @@ describe("health route", () => {
     expect(live.problems).toEqual([]);
 
     vi.stubEnv("NPS_API_KEY", "  ");
-    const degraded = await (await health()).json();
-    expect(degraded.ok).toBe(false);
-    expect(degraded.mode).toBe("degraded");
-    expect(degraded.nps).toBe("missing");
-    expect(degraded.catalogParks).toBeGreaterThanOrEqual(400);
-    expect(degraded.problems[0]).toMatch(/NPS_API_KEY/);
+    const publicPages = await (await health()).json();
+    expect(publicPages.ok).toBe(true);
+    expect(publicPages.mode).toBe("live");
+    expect(publicPages.nps).toBe("public");
+    expect(publicPages.catalogParks).toBeGreaterThanOrEqual(400);
+    expect(publicPages.problems).toEqual([]);
   });
 });
 

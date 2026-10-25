@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Atkinson_Hyperlegible, Fraunces } from "next/font/google";
 import Link from "next/link";
-import { hasNpsKey, usingFixtures } from "@/lib/runtime";
+import { usingFixtures } from "@/lib/runtime";
 import "./globals.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -26,11 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {usingFixtures() && (
           <div className="bg-sand px-4 py-2 text-center text-sm font-bold">
             Sample records are loaded for local checks. These are not live National Park Service conditions.
-          </div>
-        )}
-        {!usingFixtures() && !hasNpsKey() && (
-          <div className="bg-sand px-4 py-2 text-center text-sm font-bold" role="status">
-            Search, weather, and official alerts are available. Hours, campgrounds, and fees appear after this server is connected to the National Park Service.
           </div>
         )}
         <header className="border-b border-line bg-card">

@@ -18,6 +18,7 @@ import {
 } from "@/lib/nps-parse";
 import { nwsAlerts, nwsForecast, nwsPoints } from "@/lib/nws";
 import { publicParkAlerts } from "@/lib/public-alerts";
+import { parseStructuredPark, publicStructuredRecord, type StructuredPark } from "@/lib/structured-park";
 import { REVALIDATE, hasNpsKey, usingFixtures } from "@/lib/runtime";
 import type {
   AccessibilityFact,
@@ -48,6 +49,7 @@ function isoShift(now: Date, days: number): string {
 
 const NPS_DISCONNECTED = "Official alerts, hours, closures, campgrounds, and fees are not connected on this server. The visit status stays unconfirmed. Check the official park page before you travel.";
 const NPS_HOURS_ONLY = "Hours, campgrounds, and fees are not connected on this server. Alerts and closures on this page come from the public National Park Service alerts list. Check the official park page before you travel.";
+const NPS_PUBLIC = "Road events, today's events, and the park outline come from the NPS Data API, which is not connected. Alerts, hours, fees, and campgrounds are from National Park Service public pages.";
 
 export async function loadParkConditions(parkCode: string, now = new Date()): Promise<ParkConditions | null> {
   const code = parkCode.toLowerCase();
@@ -147,8 +149,34 @@ async function loadPublicAlerts(parkCode: string, now: Date): Promise<Alert[] | 
   }
 }
 
+async function loadPublicRecord(parkCode: string): Promise<unknown | null> {
+  try {
+    return await publicStructuredRecord(parkCode);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error(`Public National Park Service park record failed for ${parkCode}: ${message}`);
+    return null;
+  }
+}
+
+function withPublicRecord(park: ParkDetail, record: StructuredPark): ParkDetail {
+  return {
+    ...park,
+    description: record.description ?? park.description,
+    directions: record.directions ?? park.directions,
+    directionsUrl: record.directionsUrl ?? park.directionsUrl,
+    weatherOverview: record.weatherOverview ?? park.weatherOverview,
+    phone: record.phone ?? park.phone,
+    url: record.url ?? park.url,
+    images: record.images.length ? record.images : park.images,
+    schedules: record.schedules.length ? record.schedules : park.schedules,
+    fees: record.fees.length ? record.fees : park.fees,
+  };
+}
+
 async function loadStoredParkConditions(park: ParkDetail, now: Date): Promise<ParkConditions> {
   const alertsTask = loadPublicAlerts(park.parkCode, now);
+  const recordTask = loadPublicRecord(park.parkCode);
   let timeZone: string | null = null;
   let weather: WeatherReport | null = null;
   let weatherFailed = park.latitude === null || park.longitude === null;
@@ -171,16 +199,18 @@ async function loadStoredParkConditions(park: ParkDetail, now: Date): Promise<Pa
       weatherAlertsFailed = true;
     }
   }
-  const alerts = await alertsTask;
+  const [alerts, record] = await Promise.all([alertsTask, recordTask]);
+  const local = timeZone ? parkLocalParts(timeZone, now) : null;
+  const structured = record ? parseStructuredPark(record, local) : null;
   return buildConditions({
-    park,
+    park: structured ? withPublicRecord(park, structured) : park,
     alerts,
-    campgrounds: null,
-    visitorCenters: null,
+    campgrounds: structured ? structured.campgrounds : null,
+    visitorCenters: structured ? structured.visitorCenters : null,
     events: null,
     eventsFailed: false,
     activities: null,
-    fees: null,
+    fees: structured ? structured.fees : null,
     feesFromParkOnly: false,
     amenityFacts: null,
     roadEvents: null,
@@ -193,6 +223,7 @@ async function loadStoredParkConditions(park: ParkDetail, now: Date): Promise<Pa
     timeZone,
     now,
     npsSkipped: true,
+    publicRecord: structured !== null,
   });
 }
 
@@ -217,6 +248,7 @@ type BuildInput = {
   timeZone: string | null;
   now: Date;
   npsSkipped?: boolean;
+  publicRecord?: boolean;
 };
 
 export function buildConditions(input: BuildInput): ParkConditions {
@@ -241,7 +273,8 @@ export function buildConditions(input: BuildInput): ParkConditions {
   verdict.hoursText = schedule?.todayText ?? null;
 
   if (input.npsSkipped) {
-    warnings.push({ source: "National Park Service", message: input.alerts === null ? NPS_DISCONNECTED : NPS_HOURS_ONLY });
+    const message = input.publicRecord ? NPS_PUBLIC : input.alerts === null ? NPS_DISCONNECTED : NPS_HOURS_ONLY;
+    warnings.push({ source: "National Park Service", message });
   } else {
     if (input.alerts === null) warnings.push({ source: "Alerts", message: "Park alerts could not be loaded. The visit status stays unconfirmed." });
     if (input.campgrounds === null) warnings.push({ source: "Campgrounds", message: "Campgrounds could not be loaded." });
